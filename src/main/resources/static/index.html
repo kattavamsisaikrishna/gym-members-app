@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gym Member Management</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h2 { margin-bottom: 10px; }
+        form, table { margin-top: 20px; }
+        input, button { margin: 5px; padding: 5px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+<h2>Add / Update Member</h2>
+<form id="memberForm">
+    <input type="hidden" id="memberId">
+    Name: <input type="text" id="name" required>
+    Age: <input type="number" id="age">
+    Membership Type: <input type="text" id="membershipType">
+    Join Date: <input type="date" id="joinDate">
+    <button type="submit">Save</button>
+</form>
+
+<h2>Member Actions</h2>
+ID: <input type="number" id="searchId">
+<button onclick="getMember()">Get Member</button>
+<button onclick="deleteMember()">Delete Member</button>
+<button onclick="loadAll()">Load All</button>
+
+<h2>All Members</h2>
+<table id="membersTable">
+    <thead>
+    <tr><th>ID</th><th>Name</th><th>Age</th><th>Type</th><th>Join Date</th></tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    const baseUrl = 'http://localhost:8080/api/members';
+
+    // Add or update member
+    $('#memberForm').on('submit', function(e) {
+      e.preventDefault();
+      const id = $('#memberId').val();
+      const member = {
+        name: $('#name').val(),
+        age: $('#age').val(),
+        membershipType: $('#membershipType').val(),
+        joinDate: $('#joinDate').val()
+      };
+
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `${baseUrl}/${id}` : baseUrl;
+
+      $.ajax({
+        url: url,
+        type: method,
+        contentType: 'application/json',
+        data: JSON.stringify(member),
+        success: function(res) {
+          alert(id ? 'Member Updated' : 'Member Added');
+          $('#memberForm')[0].reset();
+          $('#memberId').val('');
+          loadAll();
+        },
+        error: function(err) {
+          alert('Error: ' + err.responseText);
+        }
+      });
+    });
+
+    // Get single member
+    function getMember() {
+      const id = $('#searchId').val();
+      if (!id) return alert('Enter an ID');
+      $.get(`${baseUrl}/${id}`, function(member) {
+        $('#memberId').val(member.id);
+        $('#name').val(member.name);
+        $('#age').val(member.age);
+        $('#membershipType').val(member.membershipType);
+        $('#joinDate').val(member.joinDate);
+      }).fail(function() {
+        alert('Member not found');
+      });
+    }
+
+    // Delete member
+    function deleteMember() {
+      const id = $('#searchId').val();
+      if (!id) return alert('Enter an ID');
+      if (!confirm('Are you sure to delete this member?')) return;
+      $.ajax({
+        url: `${baseUrl}/${id}`,
+        type: 'DELETE',
+        success: function() {
+          alert('Member deleted');
+          loadAll();
+        },
+        error: function() {
+          alert('Error deleting member');
+        }
+      });
+    }
+
+    // Load all members
+    function loadAll() {
+      $.get(baseUrl, function(members) {
+        const rows = members.map(m => `
+          <tr>
+            <td>${m.id}</td><td>${m.name}</td><td>${m.age}</td>
+            <td>${m.membershipType}</td><td>${m.joinDate}</td>
+          </tr>
+        `);
+        $('#membersTable tbody').html(rows.join(''));
+      });
+    }
+
+    // Load members on page load
+    $(document).ready(loadAll);
+</script>
+
+</body>
+</html>
